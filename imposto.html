@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Venda de Remédios</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        #form-container {
+            max-width: 500px;
+            width: 100%;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            color: #333;
+        }
+        .form-title {
+            font-size: 24px;
+            color: #d9534f;
+            margin-bottom: 10px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .form-field {
+            margin-bottom: 15px;
+        }
+        .form-label {
+            font-weight: bold;
+            color: #555;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007BFF;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: block;
+            margin: 20px auto 0;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .embed-output {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e7f3fe;
+            border: 1px solid #b3d4fc;
+            border-radius: 5px;
+            max-height: 300px; /* Limita a altura máxima do output */
+            overflow: auto; /* Adiciona rolagem se necessário */
+        }
+        .data-entry {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="form-container">
+        <div class="form-title">💊 Formulário de Venda</div>
+        
+        <div class="form-field">
+            <label class="form-label">👤 Nome do Cliente:</label>
+            <input type="text" id="clientName" class="form-input" required>
+        </div>
+        <div class="form-field">
+            <label class="form-label">🆔 Número do Passaporte:</label>
+            <input type="text" id="passportNumber" class="form-input" required>
+        </div>
+        <div class="form-field">
+            <label class="form-label">📦 Quantidade Vendida:</label>
+            <input type="number" id="soldQuantity" class="form-input" required>
+        </div>
+        <div class="form-field">
+            <label class="form-label">💵 Valor por Remédio:</label>
+            <input type="number" id="RemédioValue" class="form-input" required>
+        </div>
+        <div class="form-field">
+            <label class="form-label">🩺 Nome do Médico:</label>
+            <input type="text" id="doctorName" class="form-input" required>
+        </div>
+        <div class="form-field">
+            <label class="form-label">🆔 ID do Médico:</label>
+            <input type="number" id="doctorId" class="form-input" required>
+        </div>
+        
+        <button id="generateEmbed">Gerar Embed</button>
+
+        <div class="embed-output" id="embedOutput" style="display:none;">
+            <div class="data-entry"><strong>👤 Nome do Cliente:</strong> <span id="displayClientName"></span></div>
+            <div class="data-entry"><strong>🆔 Número do Passaporte:</strong> <span id="displayPassportNumber"></span></div>
+            <div class="data-entry"><strong>📦 Quantidade Vendida:</strong> <span id="displaySoldQuantity"></span></div>
+            <div class="data-entry"><strong>💵 Valor por Remédio:</strong> R$ <span id="displayRemédioValue"></span></div>
+            <div class="data-entry"><strong>💰 Total a Pagar:</strong> R$ <span id="displayTotalAmount"></span></div>
+            <div class="data-entry"><strong>⚠️ Imposto Calculado (40%):</strong> R$ <span id="displayTaxAmount"></span></div>
+            <div class="data-entry"><strong>🩺 Nome do Médico:</strong> <span id="displayDoctorName"></span></div>
+            <div class="data-entry"><strong>🆔 ID do Médico:</strong> <span id="displayDoctorId"></span></div>
+            <div class="data-entry"><strong>📑 ID do Imposto:</strong> 1169</div>
+            <button id="sendWebhook" style="margin-top: 10px;">Enviar Dados</button>
+        </div>
+    </div>
+
+    <script>
+        // Função para carregar os dados do localStorage
+        function loadSalesData() {
+            const storedData = localStorage.getItem('salesData');
+            return storedData ? JSON.parse(storedData) : {};
+        }
+    
+        // Função para salvar os dados no localStorage
+        function saveSalesData(data) {
+            localStorage.setItem('salesData', JSON.stringify(data));
+        }
+    
+        let salesData = loadSalesData(); // Carrega dados do localStorage
+    
+        document.getElementById("generateEmbed").addEventListener("click", function() {
+            const clientName = document.getElementById("clientName").value;
+            const passportNumber = document.getElementById("passportNumber").value;
+            const soldQuantity = parseFloat(document.getElementById("soldQuantity").value);
+            const RemédioValue = parseFloat(document.getElementById("RemédioValue").value);
+            const doctorName = document.getElementById("doctorName").value;
+            const doctorId = document.getElementById("doctorId").value;
+    
+            const totalAmount = soldQuantity * RemédioValue; // Cálculo do total da venda
+            const taxAmount = totalAmount * 0.40; // Cálculo do imposto
+    
+            // Atualiza os dados de vendas para o ID do médico
+            if (!salesData[doctorId]) {
+                salesData[doctorId] = {
+                    totalSales: 0,
+                    totalTaxes: 0
+                };
+            }
+    
+            // Atualiza os totais
+            salesData[doctorId].totalSales += totalAmount; // Soma o total da venda
+            salesData[doctorId].totalTaxes += taxAmount; // Soma o imposto
+    
+            // Salva os dados atualizados no localStorage
+            saveSalesData(salesData);
+    
+            // Atualiza dados do cliente no output
+            document.getElementById("displayClientName").textContent = clientName;
+            document.getElementById("displayPassportNumber").textContent = passportNumber;
+            document.getElementById("displaySoldQuantity").textContent = soldQuantity + " Remédios";
+            document.getElementById("displayRemédioValue").textContent = RemédioValue.toFixed(2);
+            document.getElementById("displayTotalAmount").textContent = totalAmount.toFixed(2);
+            document.getElementById("displayTaxAmount").textContent = taxAmount.toFixed(2);
+            document.getElementById("displayDoctorName").textContent = doctorName;
+            document.getElementById("displayDoctorId").textContent = doctorId;
+    
+            document.getElementById("embedOutput").style.display = "block";
+        });
+    
+        document.getElementById("sendWebhook").addEventListener("click", function() {
+            const clientName = document.getElementById("displayClientName").textContent;
+            const passportNumber = document.getElementById("displayPassportNumber").textContent;
+            const soldQuantity = document.getElementById("displaySoldQuantity").textContent;
+            const RemédioValue = document.getElementById("displayRemédioValue").textContent;
+            const totalAmount = document.getElementById("displayTotalAmount").textContent;
+            const taxAmount = document.getElementById("displayTaxAmount").textContent;
+            const doctorName = document.getElementById("displayDoctorName").textContent;
+            const doctorId = document.getElementById("displayDoctorId").textContent;
+            const taxId = "1169"; // ID do imposto fixo
+    
+            // Obtém o total acumulado das vendas e impostos para o médico
+            const accumulatedSales = salesData[doctorId]?.totalSales || 0;
+            const accumulatedTaxes = salesData[doctorId]?.totalTaxes || 0;
+    
+            const webhookURL = "https://discord.com/api/webhooks/1302297331449725050/-79XhjOQYiiSNBaOq0A9WQezJ5lD-rywn3I5jgrDdRl2wJ_-iZOvpyVosShzJO2kq-OG"; // Substitua pelo seu webhook
+            const payload = {
+                embeds: [{
+                    color: 3447003, // Cor verde
+                    author: {
+                        name: "💊 Venda Registrada",
+                        icon_url: "https://cdn-icons-png.flaticon.com/128/17705/17705887.png" // Adicione um ícone se desejado
+                    },
+                    description: "Os detalhes da venda são os seguintes:",
+                    fields: [
+                        {
+                            name: "👤 Nome do Cliente",
+                            value: clientName,
+                            inline: true
+                        },
+                        {
+                            name: "🆔 Número do Passaporte",
+                            value: passportNumber,
+                            inline: true
+                        },
+                        {
+                            name: "📦 Quantidade Vendida",
+                            value: soldQuantity,
+                            inline: true
+                        },
+                        {
+                            name: "💵 Valor por Remédio",
+                            value: `R$ ${parseFloat(RemédioValue).toFixed(2)}`,
+                            inline: true
+                        },
+                        {
+                            name: "💰 Total a Pagar",
+                            value: `R$ ${parseFloat(totalAmount).toFixed(2)}`,
+                            inline: true
+                        },
+                        {
+                            name: "⚠️ Imposto Calculado (40%)",
+                            value: `R$ ${parseFloat(taxAmount).toFixed(2)}`,
+                            inline: true
+                        },
+                        {
+                            name: "🩺 Nome do Médico",
+                            value: doctorName,
+                            inline: true
+                        },
+                        {
+                            name: "🆔 ID do Médico",
+                            value: doctorId,
+                            inline: true
+                        },
+                        {
+                            name: "📑 ID do Imposto",
+                            value: taxId,
+                            inline: true
+                        },
+                        {
+                            name: "💼 Total Acumulado de Vendas",
+                            value: `R$ ${accumulatedSales.toFixed(2)}`,
+                            inline: true
+                        },
+                        {
+                            name: "💸 Total Acumulado de Impostos",
+                            value: `R$ ${accumulatedTaxes.toFixed(2)}`,
+                            inline: true
+                        }
+                    ],
+                    footer: {
+                        text: "Registro gerado automaticamente",
+                        icon_url: "https://cdn-icons-png.flaticon.com/128/17705/17705887.png" // Adicione um ícone se desejado
+                    },
+                    timestamp: new Date().toISOString() // Adiciona um timestamp
+                }]
+            };
+    
+            fetch(webhookURL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert("Dados enviados com sucesso!");
+                } else {
+                    return response.text().then(text => { 
+                        alert("Erro ao enviar os dados: " + text);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao enviar dados para o webhook:', error);
+                alert("Erro ao enviar os dados.");
+            });
+        });
+    </script>
+    
+</body>
+</html>
